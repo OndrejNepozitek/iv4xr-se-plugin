@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Iv4xr.PluginLib;
+using Iv4xr.SePlugin.Custom;
 using Iv4xr.SePlugin.WorldModel;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
@@ -28,6 +29,8 @@ namespace Iv4xr.SePlugin.Control
 		private GameSession m_gameSession;
 		private MyCharacter Character => m_gameSession.Character;
 
+        private readonly Sensors sensors = new Sensors();
+
 		public Observer(GameSession session)
 		{
 			m_gameSession = session;
@@ -38,14 +41,26 @@ namespace Iv4xr.SePlugin.Control
 			var characterPosition = GetPlayerPosition();
 			var sphere = new BoundingSphereD(characterPosition, radius: 25.0);
 
+            var rayCastResults = sensors.CastRaysAroundPlayer(Character, 30, 16);
+            var transformedResults = rayCastResults.Select(x =>
+            {
+                if (x.IsHit)
+                {
+                    return x.HitDistance.Value / x.Distance;
+                }
+
+                return 0;
+            }).ToList();
+
 			return new SeObservation
 			{
 				AgentID = "se0",
 				Position = new PlainVec3D(characterPosition),  // Consider reducing allocations.
 				Velocity = new PlainVec3D(GetPlayerVelocity()),
 				Extent = AgentExtent,
-				Entities = CollectSurroundingEntities(sphere),  // TODO(PP): Don't return both entities and blocks (duplicate work).
-				Blocks = CollectSurroundingBlocks(sphere)
+				// Entities = CollectSurroundingEntities(sphere),  // TODO(PP): Don't return both entities and blocks (duplicate work).
+				// Blocks = CollectSurroundingBlocks(sphere),
+				RayCastResults = transformedResults,
 			};
 		}
 

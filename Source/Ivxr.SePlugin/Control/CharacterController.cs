@@ -14,7 +14,8 @@ namespace Iv4xr.SePlugin.Control
 		void Move(Vector3 move, Vector2 rotation, float roll);
 		void Move(MoveAndRotateArgs args);
 		void Interact(InteractionArgs args);
-	}
+        void Teleport(Vector3 position);
+    }
 
 	public class CharacterController : ICharacterController
 	{
@@ -79,5 +80,12 @@ namespace Iv4xr.SePlugin.Control
 
 			return entityController;
 		}
+
+        public void Teleport(Vector3 position)
+        {
+            var matrix = MatrixD.Identity;
+			m_session.Character.PositionComp.SetWorldMatrix(ref matrix);
+            m_session.Character.PositionComp.SetPosition(position);
+        }
 	}
 }

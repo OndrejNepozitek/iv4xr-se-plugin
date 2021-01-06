@@ -18,5 +18,7 @@ namespace Iv4xr.SePlugin.WorldModel
 		public List<SeEntity> Entities;
 
 		public List<SeBlock> Blocks;
+
+        public List<double> RayCastResults;
 	}
 }

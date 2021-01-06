@@ -62,6 +62,12 @@ namespace Iv4xr.SePlugin.Control
 			{
 				// Just observe.
 			}
+            else if (commandName.StartsWith("TELEPORT"))  // Teleport
+            {
+                var requestShell = m_jsoner.ToObject<SeRequestShell<AgentCommand<MoveCommandArgs>>>(request.Message);
+
+                m_controller.Teleport(requestShell.Arg.Arg.MoveIndicator);
+            }
 			else if (commandName.StartsWith("MOVE_ROTAT"))  // MOVE_ROTATE
 			{
 				var requestShell = m_jsoner.ToObject<SeRequestShell<AgentCommand<MoveAndRotateArgs>>>(request.Message);
