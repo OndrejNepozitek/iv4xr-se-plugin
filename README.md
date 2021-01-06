@@ -1,15 +1,34 @@
 # iv4xr-se-plugin
-Integration of **[Space Engineers](https://www.spaceengineersgame.com/)** to the **iv4XR framework**. You can find the project page at [iv4xr-project.eu](https://iv4xr-project.eu/).
 
-Status: Prototype / early development
+This is a fork of the [iv4xr-se-plugin](https://github.com/iv4xr-project/iv4xr-se-plugin) repository which is a plugin for [Space Engineers](https://www.spaceengineersgame.com/) which makes it possible to control the game via a TCP/IP socket.
 
-## Introduction
+## Ingame commands
 
-Space Engineers is a sandbox game by Keen Software House. This project is a plugin for the game which enables its integration with the iv4XR testing framework. The plugin runs a TCP/IP server with JSON-based API. It allows to access surrounding of the player's character in a structured form (a World Object Model, WOM) and to control the character. Those are the two defining features, more will be added during the development.
+This forks adds several ingame commands which can be activated by opening the chat window (ENTER key by default) and typing the command there. All commands are case-insensitive.
 
-## How to build
+#### */ToggleSensors*
 
-Requires Space Engineers codebase (which is not open) to compile. The resulting plug-in (a couple of .NET libraries), however, works with the official Steam version of Space Engineers without any modification of the game.
+Toggles sensors visualization in order to better understand what the agent senses.
+
+#### */ToggleMaxSpeed*
+
+By default, the game is capped at 60 physics simulation updates per second. This command can disable this cap to get much better simulation performance.
+
+#### */BDs load \<filename\>*
+
+Loads a file with behaviour descriptors which can be then visualized with the following commands.
+
+#### */BDs show*
+
+Shows behaviour descriptors represented as red cubes in the world. The command goes through all generations found in the loaded file and shows all behaviour descriptors from that generation for a second before moving to the next generation.
+
+#### */BDs stop*
+
+Can be called after */BDs show* to stop at the currently shown generation.
+
+#### */BDs stop*
+
+Same as */BDs stop* but also hides all behaviour descriptors.
 
 ## How to run the game with this plugin
 
@@ -25,14 +44,6 @@ Requires Space Engineers codebase (which is not open) to compile. The resulting 
 8. If the plugin works correctly, a TCP/IP server is listening for JSON-based commands on a fixed port number. (The current development version uses the port number 9678.) 
    Another sign of life is a log file present in user's app data folder such as: `C:\Users\<username>\AppData\Roaming\SpaceEngineers\ivxr-plugin.log`
 
-## API
+## How to build
 
-The network protocol is just some proof of concept for now, so it's possible it will change. It is based on [the Lab Recruits demo](https://github.com/iv4xr-project/iv4xrDemo). The protocol is based on JSON commands split by newlines.
-
-Currently implemented commands:
-
-- **Observe** – basic version; returns list of entities and their location in the agent's surrounding.
-- **MoveAndRotate** – allows to move and and rotate the agent in all directions.
-- Disconnect
-
-There's a Java project derived from the Lab Recruits demo that contains a demo client in the form of unit tests. The [repository is here](https://github.com/iv4xr-project/iv4xrDemo-space-engineers).
+Requires Space Engineers codebase (which is not open) to compile. The resulting plug-in (a couple of .NET libraries), however, works with the official Steam version of Space Engineers without any modification of the game.
