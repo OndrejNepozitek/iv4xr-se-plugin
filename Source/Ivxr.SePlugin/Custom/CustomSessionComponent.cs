@@ -5,10 +5,17 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Sandbox;
+using Sandbox.Game;
+using Sandbox.Game.Entities;
+using Sandbox.Game.Entities.Cube;
+using Sandbox.Game.GUI;
 using Sandbox.ModAPI;
+using VRage;
 using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI;
+using VRage.Game.ModAPI.Ingame;
+using VRage.ObjectBuilders;
 using VRage.Utils;
 using VRageMath;
 
@@ -18,7 +25,7 @@ namespace Iv4xr.SePlugin.Custom
     public class CustomSessionComponent : MySessionComponentBase
     {
         private bool isInit;
-        private bool enableSensors = true;
+        private bool enableSensors = false;
 
         private Sensors sensors = new Sensors();
         private List<Sensors.RayCastResult> rayCastResults;
@@ -26,6 +33,8 @@ namespace Iv4xr.SePlugin.Custom
         private string behaviourDescriptorsFile;
         private List<Vector3D> behaviourDescriptors;
         private IEnumerator behaviourDescriptorsEnumerator;
+        private RoboticArmController roboticArmController;
+        private List<IEnumerator> coroutines = new List<IEnumerator>();
 
         public override void UpdateBeforeSimulation()
         {
@@ -48,6 +57,15 @@ namespace Iv4xr.SePlugin.Custom
                 if (!shouldContinue)
                 {
                     behaviourDescriptorsEnumerator = null;
+                }
+            }
+
+            foreach (var coroutine in coroutines.ToList())
+            {
+                var shouldContinue = coroutine.MoveNext();
+                if (!shouldContinue)
+                {
+                    coroutines.Remove(coroutine);
                 }
             }
         }
@@ -116,6 +134,150 @@ namespace Iv4xr.SePlugin.Custom
                 behaviourDescriptors = null;
                 behaviourDescriptorsEnumerator = null;
             }
+
+            if (text.StartsWith("/arm", StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (roboticArmController == null)
+                {
+                    roboticArmController = new RoboticArmController();
+                    roboticArmController.Init();
+                }
+
+                if (text.StartsWith("/arm set", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var args = text.Split(' ');
+
+                    if (args.Length - 2 != 3)
+                    {
+                        MyAPIGateway.Utilities.ShowMessage("Helper", $"Invalid number of arguments");
+                    }
+                    else
+                    {
+                        var valid1 = float.TryParse(args[2], out var rotor1Velocity);
+                        var valid2 = float.TryParse(args[3], out var rotor2Velocity);
+                        var valid3 = float.TryParse(args[4], out var rotor3Velocity);
+
+                        if (!valid1 || !valid2 || !valid3)
+                        {
+                            MyAPIGateway.Utilities.ShowMessage("Helper", $"Some parameters are not numbers");
+                        }
+                        else
+                        {
+                            roboticArmController.Set(rotor1Velocity, rotor2Velocity, rotor3Velocity);
+                        }
+                    }
+                }
+
+                if (text.StartsWith("/arm toggle", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var rotor = roboticArmController.GetRotor("Rotor 1");
+                    rotor.Enabled = !rotor.Enabled;
+                }
+
+                if (text.Equals("/arm resetBall", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    roboticArmController.ResetBall();
+                }
+
+                if (text.Equals("/arm throw", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    roboticArmController.Throw();
+                }
+
+                if (text.Equals("/arm reset", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    StartCoroutine(roboticArmController.Reset());
+                }
+            }
+
+            if (text.Equals("/prefab", StringComparison.InvariantCultureIgnoreCase))
+            {
+                var path = Path.Combine(MyBlueprintUtils.BLUEPRINT_FOLDER_LOCAL, "ThrowerArm - NoHinges", "bp.sbc");
+                var definition = MyBlueprintUtils.LoadPrefab(path);
+                var blueprint = definition.ShipBlueprints[0];
+
+                var tempList = new List<MyObjectBuilder_EntityBase>();
+                var offset = new Vector3D(new Vector3(-300, 300, 300));
+
+                // We SHOULD NOT make any changes directly to the prefab, we need to make a Value copy using Clone(), and modify that instead.
+                foreach (var grid in blueprint.CubeGrids)
+                {
+                    var gridBuilder = (MyObjectBuilder_CubeGrid)grid.Clone();
+                    gridBuilder.PositionAndOrientation = new MyPositionAndOrientation(grid.PositionAndOrientation.Value.Position + offset, grid.PositionAndOrientation.Value.Forward, grid.PositionAndOrientation.Value.Up);
+
+                    tempList.Add(gridBuilder);
+                }
+
+                var entities = new List<IMyEntity>();
+
+                MyAPIGateway.Entities.RemapObjectBuilderCollection(tempList);
+                foreach (var item in tempList)
+                    entities.Add(MyAPIGateway.Entities.CreateFromObjectBuilderAndAdd(item));
+                MyAPIGateway.Multiplayer.SendEntitiesCreated(tempList);
+            }
+
+            if (text.Equals("/prefab2", StringComparison.InvariantCultureIgnoreCase))
+            {
+
+
+                var path = Path.Combine(MyBlueprintUtils.BLUEPRINT_FOLDER_LOCAL, "ThrowerArm - NoHinges", "bp.sbc");
+                var definition = MyBlueprintUtils.LoadPrefab(path);
+
+                MyVisualScriptLogicProvider.SpawnLocalBlueprint("ThrowerArm - NoHinges", new Vector3D(new Vector3(-300, 300, 300)), Vector3D.Up, "Test");
+            }
+
+            if (text.Equals("/remove", StringComparison.InvariantCultureIgnoreCase))
+            {
+                var players = new List<IMyPlayer>();
+                MyAPIGateway.Players.GetPlayers(players);
+                var player = players[0];
+                var playerPosition = player.Character.PositionComp.GetPosition();
+                var sphere = new BoundingSphereD(playerPosition, radius: 100.0);
+                var entities = MyEntities.GetEntitiesInSphere(ref sphere);
+
+                foreach (var entity in entities)
+                {
+                    if (entity is MyCubeGrid)
+                    {
+                        entity.Close();
+                    }
+                }
+
+                entities.Clear();
+            }
+
+            if (text.Equals("/pos", StringComparison.InvariantCultureIgnoreCase))
+            {
+                var players = new List<IMyPlayer>();
+                MyAPIGateway.Players.GetPlayers(players);
+                var player = players[0];
+                var playerPosition = player.Character.PositionComp.GetPosition();
+
+                MyAPIGateway.Utilities.ShowMessage("Helper", $"Current position: {playerPosition}");
+            }
+        }
+
+        private void StartCoroutine(IEnumerator coroutine)
+        {
+            coroutines.Add(coroutine);
+        }
+
+        private void GetEntities()
+        {
+            var players = new List<IMyPlayer>();
+            MyAPIGateway.Players.GetPlayers(players);
+            var player = players[0];
+            var playerPosition = player.Character.PositionComp.GetPosition();
+            var sphere = new BoundingSphereD(playerPosition, radius: 50.0);
+
+            var entities = MyEntities.GetEntitiesInSphere(ref sphere);
+
+            var rotor1 = entities
+                .Where(x => x is MyMotorAdvancedStator)
+                .Cast<MyMotorAdvancedStator>()
+                .SingleOrDefault(x => x.CustomName.ToString() == "Rotor 1");
+
+            entities.Clear();
         }
 
         public override void Draw()
@@ -179,7 +341,7 @@ namespace Iv4xr.SePlugin.Custom
 
                     if (result.IsHit)
                     {
-                        var fractionColor = (int)(255 * result.HitDistance.Value / result.Distance);
+                        var fractionColor = (int)(255 * result.HitDistance.Value / result.MaxDistance);
                         color = new Color(255, fractionColor, fractionColor);
                         to = result.HitPosition.Value;
                     }

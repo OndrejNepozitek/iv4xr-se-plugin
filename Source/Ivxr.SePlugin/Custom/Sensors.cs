@@ -45,7 +45,7 @@ namespace Iv4xr.SePlugin.Custom
                 {
                     From = from,
                     To = to,
-                    Distance = distance,
+                    MaxDistance = distance,
                 };
 
                 if (hitInfo != null)
@@ -67,7 +67,7 @@ namespace Iv4xr.SePlugin.Custom
 
             public Vector3D To { get; set; }
 
-            public double Distance { get; set; }
+            public double MaxDistance { get; set; }
 
             public bool IsHit { get; set; }
 

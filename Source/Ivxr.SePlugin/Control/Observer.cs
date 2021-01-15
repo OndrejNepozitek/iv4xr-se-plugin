@@ -46,10 +46,10 @@ namespace Iv4xr.SePlugin.Control
             {
                 if (x.IsHit)
                 {
-                    return x.HitDistance.Value / x.Distance;
+                    return x.HitDistance.Value / x.MaxDistance;
                 }
 
-                return 0;
+                return 1;
             }).ToList();
 
 			return new SeObservation
